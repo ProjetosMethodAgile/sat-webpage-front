@@ -8,15 +8,20 @@ import { jwtDecode } from "jwt-decode";
 import Button from "../../Button/Button";
 import LoadingCenterComponent from "../../Utils/LoadingCenterComponent/LoadingCenterComponent";
 import { useNavigate } from "react-router-dom";
+import buttonStyle from '../../Button/Button.module.css'
+import { Link } from "react-router-dom";
 
 const MinhaConta = () => {
   
   const navigate = useNavigate();
-  const { userAuth, setUserAuth,logout } = useContext(GlobalContext);
+  const { userAuth, setUserAuth,logout,setDataUpdate } = useContext(GlobalContext);
   const [currentUser, setCurrentUser] = useState(null);
   const { request, loading } = useFetch();
   useEffect(() => {
     const token = window.localStorage.getItem("token");
+    
+
+
     async function fetchValidaToken() {
       if (token) {
         const { id, rule } = jwtDecode(token);
@@ -71,7 +76,9 @@ const MinhaConta = () => {
                 <Title text="Serviços Publicados" fontSize="2" />
                 <p>2</p>
               </li>
-                <Button>Editar</Button>
+                <button onClick={()=>setDataUpdate(currentUser)} className={buttonStyle.button}>
+                  <Link to='/usuarios/cadastro/atualiza'>Editar</Link>
+                </button>
             </>)
           }
         </ul>

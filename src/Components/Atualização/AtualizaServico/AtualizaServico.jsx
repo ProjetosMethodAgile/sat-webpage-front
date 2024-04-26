@@ -35,10 +35,9 @@ const AtualizaServico = () => {
         if (response.ok) {
           setUserAuth({ token, usuario: json, status: true, rule });
         } else {
-          setUserAuth();
+          setUserAuth(null);
           logout()
         }
-
       }
     }
     fetchValidaToken();

@@ -6,18 +6,23 @@ import Title from "../../Titles/Title";
 import InputSelect from "../../Forms/Input/InputSelect";
 import useForm from "../../../Hooks/useForm";
 import useFetch from "../../../Hooks/useFetch";
-import { GET_ALL, UPDATE_DATA } from "../../../Api/api";
+import { GET_ALL, GET_AUTH_USER, UPDATE_DATA } from "../../../Api/api";
 import Loading from "../../Utils/Loading/Loading";
 import Toast from "../../Toast/Toast";
 import { GlobalContext } from "../../../Hooks/GlobalContext";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import useToken from "../../../Hooks/useToken";
 
 const AtualizaUsuario = () => {
   const [rules, setRules] = useState(null);
   const [statusCadastro, setStatusCadastro] = useState(null);
-  const { dataUpdate, userAuth } = useContext(GlobalContext);
+  const { dataUpdate, userAuth, setUserAuth } = useContext(GlobalContext);
   const formRef = useRef(); // utilizado para acesso ao input options
   const navigate = useNavigate();
+  const dadosAtualizados = JSON.parse(
+    window.localStorage.getItem("updateData")
+  );
 
   const nameForm = useForm();
   const emailForm = useForm("email");
@@ -28,23 +33,39 @@ const AtualizaUsuario = () => {
   const morador = useForm();
   const socioSatForm = useForm(false);
   const { request, data, loading, error } = useFetch();
+  const token = window.localStorage.getItem("token");
+  const tokenValidate = useToken();
+  useEffect(() => {
+    async function validaToken(){
+      const {tokenResponse,tokenJson} = await tokenValidate(token);
+    }
+    validaToken()
+  }, []);
 
   //================UPDATE=====================//
   useEffect(() => {
     if (dataUpdate) {
-      nameForm.setValue(dataUpdate.nome);
-      emailForm.setValue(dataUpdate.email);
-      contatoP1Form.setValue(dataUpdate.contato_pessoal_01);
-      contatoP2Form.setValue(dataUpdate.contato_pessoal_02);
-      contatoN1Form.setValue(dataUpdate.contato_negocio_01);
-      contatoN2Form.setValue(dataUpdate.contato_negocio_02);
-      morador.setValue(dataUpdate.tempo_reside);
+      window.localStorage.setItem("updateData", JSON.stringify(dataUpdate));
+    }
+    if (dadosAtualizados) {
+      nameForm.setValue(dadosAtualizados.nome);
+      emailForm.setValue(dadosAtualizados.email);
+      contatoP1Form.setValue(dadosAtualizados.contato_pessoal_01);
+      contatoP2Form.setValue(dadosAtualizados.contato_pessoal_02);
+      contatoN1Form.setValue(dadosAtualizados.contato_negocio_01);
+      contatoN2Form.setValue(dadosAtualizados.contato_negocio_02);
+      morador.setValue(dadosAtualizados.tempo_reside);
       setTimeout(() => {
-        formRef.current["socio_sat"].checked = dataUpdate.socio_sat;
-        formRef.current["rule"].value = String(dataUpdate.rule_id);
-        formRef.current["status"].value = dataUpdate.status === "Ativo"
-          ? "Ativo"
-          : "Inativo";
+        if (
+          formRef.current["socio_sat"] &&
+          formRef.current["rule"] &&
+          formRef.current["status"]
+        ) {
+          formRef.current["socio_sat"].checked = dadosAtualizados.socio_sat;
+          formRef.current["rule"].value = String(dadosAtualizados.rule_id);
+          formRef.current["status"].value =
+            dadosAtualizados.status === "Ativo" ? "Ativo" : "Inativo";
+        }
       }, 1000);
     }
   }, []);
@@ -61,15 +82,14 @@ const AtualizaUsuario = () => {
 
   function handleSubmit(e) {
     e.preventDefault();
+    console.log(dataUpdate);
     //valida todos os campos
     if (
       nameForm.validate() &&
       emailForm.validate() &&
       contatoP1Form.validate() &&
       contatoN1Form.validate() &&
-      morador.validate() &&
-      rules &&
-      dataUpdate
+      morador.validate()
     ) {
       const dataUsuario = {
         nome: nameForm.value,
@@ -79,22 +99,29 @@ const AtualizaUsuario = () => {
         contato_negocio_01: contatoN1Form.value,
         contato_negocio_02: contatoN2Form.value,
         tempo_reside: morador.value,
-        socio_sat: userAuth.rule === 3 ? (formRef.current["socio_sat"].checked ? "Sim" : "Não") : "False",
-        status: userAuth.rule === 3 ? (formRef.current["status"].value === "Ativo" ? "1" : "3") : "1",
-        rule_id: +formRef.current["rule"].value 
+        socio_sat:
+          userAuth.rule === 3
+            ? formRef.current["socio_sat"].checked
+              ? "Sim"
+              : "Não"
+            : "False",
+        status:
+          userAuth.rule === 3
+            ? formRef.current["status"].value === "Ativo"
+              ? "1"
+              : "3"
+            : "1",
+        rule_id: userAuth.rule === 3 ? +formRef.current["rule"].value : 1,
       };
-
 
       async function postUser() {
         const token = window.localStorage.getItem("token");
-          const { url, options } = UPDATE_DATA(
-            "usuarios",
-            dataUsuario,
-            dataUpdate.id,
-            token
-          );
-        
-
+        const { url, options } = UPDATE_DATA(
+          "usuarios",
+          dataUsuario,
+          dadosAtualizados.id,
+          token
+        );
         const userRequest = await request(url, options);
         if (userRequest.response.ok) {
           setStatusCadastro(userRequest.json.message);
@@ -106,7 +133,6 @@ const AtualizaUsuario = () => {
           contatoP2Form.reset();
           morador.reset();
           formRef.current["socio_sat"].unchecked;
-
         }
       }
       postUser();
@@ -141,7 +167,7 @@ const AtualizaUsuario = () => {
               gridColumn="1/3"
               {...emailForm}
             />
-        
+
             <InputText
               label="Contato Pessoal*"
               type="text"

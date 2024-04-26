@@ -79,7 +79,7 @@ export const Header = () => {
           {loading&& <LoadingDots />}
         </div>
         {userAuth.status && !loading&& (
-          <>
+          <div>
               <div className={styles.usuarioLogado} onClick={handleClick}>
               <p className={styles.welcome}>
                 {" "}
@@ -87,8 +87,7 @@ export const Header = () => {
               </p>
               {modalUsuario && <ModalUsuario />}
             </div>
-            
-          </>
+          </div>
         )}
           {!userAuth.status&& !modalUsuario&& !loading&&
           <div className={styles.headerButtons}>
